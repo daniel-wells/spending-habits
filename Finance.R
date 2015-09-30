@@ -1,0 +1,113 @@
+# TODO
+# Change Colors - for Time of Day
+# Add amount lables
+# Do Item Frequency Graph
+# Get rid of Christmas Term
+# Commas on lables, better background/axes lables etc.
+
+
+# install.package("ggplot2")
+library(ggplot2)
+library(plyr)
+library(scales)
+library(plotly)
+
+
+Finance <- read.csv("Finance.csv", na.strings="")
+
+# CheckPreCleaning - remove quotes, commas in numbers, empty lines
+# class(Finance$Price)
+
+# Reformat Date and Time
+Finance$Date <-as.Date(Finance$Date,format='%d/%m/%Y')
+Finance$Time <- as.POSIXct(Finance$Time,tz="GMT",format='%H:%M:%S')
+
+# Distribution of Item Prices
+ggplot(Finance, aes(Price)) + geom_histogram(binwidth=0.05) +
+  xlim(0,5) +
+  labs(x="Price (£)", y="# of Items", title="Distribution of Item Prices")
+ggsave(file="figures/item-price-dist.png", width=12.75, height=7)
+
+# Plot Date vs Time
+# ggplot(Finance, aes(x = Date, y = Time, colour = factor(Term), size=Price, label=Item)) + geom_point(alpha=1/2) + scale_x_date() + labs(x="Date", y="Time", title="Items Bought by Date and Time", color="Term") + scale_size_area(max_size=50) + guides(color=guide_legend(nrow=2,byrow=TRUE),size=FALSE) + theme(legend.position="bottom") + scale_y_datetime(labels = date_format("%H:%M"))
+# ggsave(file="item-time-all.png", width=12.75, height=7)
+
+
+# Subset Time data for 2nd Year
+FinanceSubset <- subset(Finance, (Term == "Year 2 Michaelmas" & !is.na(Time)) | (Term == "Year 2 Hilary" & !is.na(Time)) | (Term == "Year 2 Trinity" & !is.na(Time))| (Term == "Year 2 Summer" & !is.na(Time)))
+FinanceSubset <- subset(FinanceSubset, !is.na(Price))
+
+# Replaced by Plotly Graph
+# ggplot(FinanceSubset, aes(x = Date, y = Time, colour = factor(Category), size=Price, label=Item)) + geom_point(alpha=1/2) + scale_x_date() + labs(x="Date", y="Time", title="Items Bought by Date and Time In 2nd Year", color="Category") + scale_size_area(max_size=30) + guides(size=FALSE) + theme(legend.position="bottom")  + scale_y_datetime(labels = date_format("%H:%M")) + geom_text(data=subset(FinanceSubset, Price > 3),size=4,hjust=-0.15,vjust=0,angle=45,color="Black")
+
+#Plottly Graph
+# source("config.R") # Set Plottly username & API key
+# ggplot(FinanceSubset, aes(x = Date, y = Time, colour = factor(Category), label=Item)) + geom_point(aes(size=Price,text = paste("Item:",FinanceSubset$Item,"\n Price: £",FinanceSubset$Price)),alpha=1/2) + scale_x_date() + labs(x="Date", y="Time", title="Items Bought by Date and Time In Hilary Term of Year 2", color="Category") + scale_size_area(max_size=30) + guides(size=FALSE) + theme(legend.position="bottom")  + scale_y_datetime(labels = date_format("%H:%M"))
+#ggplotly()
+
+# Aggregate: Price Per Day
+FinanceByDay <- ddply(Finance, c("Date","Term"), summarise, Sum=sum(Price,na.rm=TRUE))
+
+# Set Term Factor Levels so colors will plot in correct order
+FinanceByDay$Term <- factor(FinanceByDay$Term,levels=c("Year 1 Michaelmas","Year 1 Hilary","Year 1 Trinity","Year 2 Michaelmas","Year 2 Hilary","Year 2 Trinity","Year 2 Summer","Year 3 Michaelmas","Year 3 Christmas","Year 3 Hilary","Year 3 Trinity","Year 3 Summer","Year 4 Michaelmas","Year 4 Hilary","Year 4 Trinity","Year 4 Summer"))
+
+# Manhatten Plot Price By Day
+ggplot(FinanceByDay, aes(Date,Sum, fill=Term)) +
+  geom_histogram(stat="identity") +
+  ylim(0,100) +
+  guides(fill=guide_legend(nrow=2,byrow=TRUE),size=FALSE) +
+  theme(legend.position="bottom") +
+  labs(x="Time", y="Daily Spend (£)", title="Daily Spend over Time", fill="Term") +
+  scale_fill_manual(values=c("#ED746C","#51B9E7","#C77BFA","#ED746C","#51B9E7","#C77BFA","#59B82A","#ED746C","#ED746C","#51B9E7","#C77BFA","#59B82A","#ED746C","#51B9E7","#C77BFA","#59B82A"))
+ggsave(file="figures/manhatten.png", width=12.75, height=7)
+
+# Distribution of Spend per Day
+ggplot(FinanceByDay, aes(Sum)) +
+  geom_histogram(binwidth=0.25) +
+  xlim(0,25) + labs(x="Daily Spend (£)", y="# of Days with a given spend", title="Distribution of Daily Spend")
+ggsave(file="figures/spend-per-day.png", width=12.75, height=7)
+
+
+# Aggregate: Price Per Term
+FinanceByTerm <- ddply(Finance, c("Term"), summarise, Sum=sum(Price,na.rm=TRUE))
+
+# Set Factor Levels so will plot in correct order
+FinanceByTerm$Term <- factor(FinanceByTerm$Term,levels=c("Year 1 Michaelmas","Year 1 Hilary","Year 1 Trinity","Year 2 Michaelmas","Year 2 Hilary","Year 2 Trinity","Year 2 Summer","Year 3 Michaelmas","Year 3 Christmas","Year 3 Hilary","Year 3 Trinity","Year 3 Summer","Year 4 Michaelmas","Year 4 Hilary","Year 4 Trinity","Year 4 Summer"))
+
+# Histogram - Spend Per Term
+ggplot(FinanceByTerm, aes(Term,Sum)) +
+  geom_histogram(stat="identity") +
+  theme(axis.text.x=element_text(angle=40,hjust=1,vjust=1,size=15)) +
+  labs(x="Term", y="Termly Spend (£)", title="Total Spend for each Term")
+ggsave(file="figures/spend-per-term.png", width=12.75, height=7)
+
+
+# Aggregate: Spend Per Vendor
+FinanceByVendor <- ddply(Finance, c("Vendor"), summarise, Sum=sum(Price))
+
+# Order by Spend
+
+FinanceByVendor <- FinanceByVendor[order(FinanceByVendor$Sum, decreasing=T),]
+ShortVendor <- FinanceByVendor[1:25,]
+ShortVendor$Vendor <- reorder(ShortVendor$Vendor, ShortVendor$Sum)
+
+# Vertical Dotplaot of Vendors
+ggplot(ShortVendor, aes(x = Sum, y = factor(Vendor) )) +
+	geom_point() +
+	xlab("Total Spend Per Vendor") + ylab("Vendor") +
+  scale_x_log10() +
+	labs(x="Total Spend Per Vendor (£)", y="Vendor", title="Total Spend for each Vendor (Log Scale)")
+ggsave(file="figures/spend-per-vendor-log.png", width=12.75, height=7)
+
+# Histogram Spend Per Vendor
+ggplot(ShortVendor, aes(Vendor,Sum)) +
+  geom_histogram(stat="identity") +
+  theme(axis.text.x=element_text(angle=40,hjust=1,vjust=1,size=7)) +
+  coord_flip() +
+	labs(x="Vendor", y="Total Spend Per Vendor (£)", title="Total Spend for each Vendor (Linear Scale)")
+ggsave(file="figures/spend-per-vendor-linear.png", width=12.75, height=7)
+
+# OLD THINGS:
+# PriceByDay <- aggregate(NewFinance$Price, list(Day = format(as.Date(NewFinance$Date), "%Y %m %d")), sum)
+# PriceByDay$Day <-as.Date(PriceByDay$Day)
+# PriceByDay2 <- aggregate(Finance$Price, list(Date = Finance$Date), sum)
