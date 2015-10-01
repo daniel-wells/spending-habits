@@ -2,7 +2,6 @@
 # Change Colors - for Time of Day
 # Add amount lables
 # Do Item Frequency Graph
-# Get rid of Christmas Term
 # Commas on lables, better background/axes lables etc.
 
 
@@ -49,7 +48,7 @@ FinanceSubset <- subset(FinanceSubset, !is.na(Price))
 FinanceByDay <- ddply(Finance, c("Date","Term"), summarise, Sum=sum(Price,na.rm=TRUE))
 
 # Set Term Factor Levels so colors will plot in correct order
-FinanceByDay$Term <- factor(FinanceByDay$Term,levels=c("Year 1 Michaelmas","Year 1 Hilary","Year 1 Trinity","Year 2 Michaelmas","Year 2 Hilary","Year 2 Trinity","Year 2 Summer","Year 3 Michaelmas","Year 3 Christmas","Year 3 Hilary","Year 3 Trinity","Year 3 Summer","Year 4 Michaelmas","Year 4 Hilary","Year 4 Trinity","Year 4 Summer"))
+FinanceByDay$Term <- factor(FinanceByDay$Term,levels=c("Year 1 Michaelmas","Year 1 Hilary","Year 1 Trinity","Year 2 Michaelmas","Year 2 Hilary","Year 2 Trinity","Year 2 Summer","Year 3 Michaelmas","Year 3 Hilary","Year 3 Trinity","Year 3 Summer","Year 4 Michaelmas","Year 4 Hilary","Year 4 Trinity","Year 4 Summer"))
 
 # Manhatten Plot Price By Day
 ggplot(FinanceByDay, aes(Date,Sum, fill=Term)) +
@@ -58,7 +57,7 @@ ggplot(FinanceByDay, aes(Date,Sum, fill=Term)) +
   guides(fill=guide_legend(nrow=2,byrow=TRUE),size=FALSE) +
   theme(legend.position="bottom") +
   labs(x="Time", y="Daily Spend (£)", title="Daily Spend over Time", fill="Term") +
-  scale_fill_manual(values=c("#ED746C","#51B9E7","#C77BFA","#ED746C","#51B9E7","#C77BFA","#59B82A","#ED746C","#ED746C","#51B9E7","#C77BFA","#59B82A","#ED746C","#51B9E7","#C77BFA","#59B82A"))
+  scale_fill_manual(values=c("#ED746C","#51B9E7","#C77BFA","#ED746C","#51B9E7","#C77BFA","#59B82A","#ED746C","#51B9E7","#C77BFA","#59B82A","#ED746C","#51B9E7","#C77BFA","#59B82A"))
 ggsave(file="figures/manhatten.png", width=12.75, height=7)
 
 # Distribution of Spend per Day
@@ -72,7 +71,7 @@ ggsave(file="figures/spend-per-day.png", width=12.75, height=7)
 FinanceByTerm <- ddply(Finance, c("Term"), summarise, Sum=sum(Price,na.rm=TRUE))
 
 # Set Factor Levels so will plot in correct order
-FinanceByTerm$Term <- factor(FinanceByTerm$Term,levels=c("Year 1 Michaelmas","Year 1 Hilary","Year 1 Trinity","Year 2 Michaelmas","Year 2 Hilary","Year 2 Trinity","Year 2 Summer","Year 3 Michaelmas","Year 3 Christmas","Year 3 Hilary","Year 3 Trinity","Year 3 Summer","Year 4 Michaelmas","Year 4 Hilary","Year 4 Trinity","Year 4 Summer"))
+FinanceByTerm$Term <- factor(FinanceByTerm$Term,levels=c("Year 1 Michaelmas","Year 1 Hilary","Year 1 Trinity","Year 2 Michaelmas","Year 2 Hilary","Year 2 Trinity","Year 2 Summer","Year 3 Michaelmas","Year 3 Hilary","Year 3 Trinity","Year 3 Summer","Year 4 Michaelmas","Year 4 Hilary","Year 4 Trinity","Year 4 Summer"))
 
 # Histogram - Spend Per Term
 ggplot(FinanceByTerm, aes(Term,Sum)) +
