@@ -1,17 +1,24 @@
+---
+title: "Personal Finance"
+output: github_document
+---
+```{r load_librarys, echo=FALSE, message=FALSE, warning=FALSE}
+library(knitr)
+opts_chunk$set(echo=FALSE, fig.width=10, fig.asp=1/1.5, fig.retina=2, message=FALSE, warning=FALSE)
+library(data.table, quietly = TRUE)
+library(ggplot2)
+library(lubridate)
+library(dplyr)
+library(scales)
+#library(plotly)
+```
 # TODO
 # Change Colors - for Time of Day
 # Add amount lables
 # Do Item Frequency Graph
 # Commas on lables, better background/axes lables etc.
 
-
-# install.package("ggplot2")
-library(ggplot2)
-library(plyr)
-library(scales)
-library(plotly)
-
-
+```{r}
 Finance <- read.csv("Finance.csv", na.strings="")
 
 # CheckPreCleaning - remove quotes, commas in numbers, empty lines
@@ -110,3 +117,4 @@ ggsave(file="figures/spend-per-vendor-linear.png", width=12.75, height=7)
 # PriceByDay <- aggregate(NewFinance$Price, list(Day = format(as.Date(NewFinance$Date), "%Y %m %d")), sum)
 # PriceByDay$Day <-as.Date(PriceByDay$Day)
 # PriceByDay2 <- aggregate(Finance$Price, list(Date = Finance$Date), sum)
+```
