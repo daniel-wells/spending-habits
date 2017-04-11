@@ -27,8 +27,9 @@ Finance <- Finance[Item!=""] # remove empty lines
 
 # Reformat Date and Time
 Finance$Date <- dmy(Finance$Date)
-Finance$Time <- as.POSIXct(Finance$Time,tz="GMT",format='%H:%M:%S')
-Finance[,Term:= factor(Term, levels=c("Year 1 Michaelmas","Year 1 Hilary","Year 1 Trinity","Year 2 Michaelmas","Year 2 Hilary","Year 2 Trinity","Year 2 Summer","Year 3 Michaelmas","Year 3 Hilary","Year 3 Trinity","Year 3 Summer","Year 4 Michaelmas","Year 4 Hilary","Year 4 Trinity","Year 4 Summer"))]
+#Finance$Time <- hms(substr(Finance$Time,0,5))
+Finance$Time <- as.POSIXct(substr(Finance$Time,0,5),tz="GMT",format='%H:%M') #, origin="1970-01-01"
+Finance[,Term:= factor(Term, levels=c("Michaelmas","Christmas","Hilary","Trinity","Summer"))]
 Finance[,Category:= as.factor(Category)]
 
 # Distribution of Item Prices
@@ -78,13 +79,14 @@ ggplot(FinanceByDay, aes(Spend)) +
   xlim(0,25) + labs(x="Daily Spend (£)", y="# of Days with a given spend", title="Distribution of Daily Spend")
 
 # Aggregate: Price Per Term
-FinanceByTerm <- Finance[,.(Spend = sum(Price)), by = Term]
+FinanceByTerm <- Finance[,.(Spend = sum(Price, na.rm = T)), by = c('Term','Year')]
 
 # Histogram - Spend Per Term
-ggplot(FinanceByTerm, aes(Term,Spend)) +
-  geom_histogram(stat="identity") +
+ggplot(FinanceByTerm[Term!="Christmas"], aes(Term,Spend)) +
+  geom_col() +
   theme(axis.text.x=element_text(angle=40,hjust=1,vjust=1,size=15)) +
-  labs(x="Term", y="Termly Spend (£)", title="Total Spend for each Term")
+  scale_y_continuous(labels = dollar_format(prefix = "£"))+
+  labs(x="Term", y="Termly Spend") + facet_grid(~Year)
 ```
 
 Breaking down my spending by category, Rent accounts for the vast majority of my spending followed by Food.
