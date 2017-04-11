@@ -19,10 +19,11 @@ library(scales)
 # Commas on lables, better background/axes lables etc.
 
 ```{r}
-Finance <- fread("Finance.tsv")
+undergrad <- fread("Finance - Undergrad Expenses.tsv")
+dphil <- fread("Finance - DPhil Expenses.tsv")
 
-# CheckPreCleaning - remove quotes, commas in numbers, empty lines
-# class(Finance$Price)
+Finance <- rbind(undergrad[,-c("Day","Notes"), with=FALSE], dphil[,-c("Totals:","V13"), with=FALSE])
+Finance <- Finance[Item!=""] # remove empty lines
 
 # Reformat Date and Time
 Finance$Date <- dmy(Finance$Date)
