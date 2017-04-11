@@ -13,6 +13,7 @@ library(ggplot2)
 library(lubridate)
 library(dplyr)
 library(scales)
+library(ggTimeSeries) 
 #library(plotly)
 ```
 
@@ -31,6 +32,7 @@ Finance$Date <- dmy(Finance$Date)
 Finance$Time <- as.POSIXct(substr(Finance$Time,0,5),tz="GMT",format='%H:%M') #, origin="1970-01-01"
 Finance[,Term:= factor(Term, levels=c("Michaelmas","Christmas","Hilary","Trinity","Summer"))]
 Finance[,Category:= as.factor(Category)]
+Finance[, Percentage := Price / sum(Price, na.rm = TRUE)]
 
 # Distribution of Item Prices
 ggplot(Finance, aes(Price)) + geom_histogram(binwidth=0.05) +
@@ -113,15 +115,17 @@ Looking at total spend per vendor the top three vendors simply reflect my rental
 
 ```{r}
 # Aggregate: Spend Per Vendor
-FinanceByVendor <- Finance[,.(Spend = sum(Price)), by = Vendor]
+FinanceByVendor <- Finance[,.(Spend = sum(Percentage, na.rm = TRUE)), by = Vendor]
 FinanceByVendor[,Vendor := factor(Vendor, levels=FinanceByVendor[order(Spend)]$Vendor)]
 
 # Histogram Spend Per Vendor
-ggplot(FinanceByVendor[1:10], aes(Vendor,Spend)) +
-  geom_histogram(stat="identity") +
-  theme(axis.text.x=element_text(angle=40,hjust=1,vjust=1,size=7)) +
+ggplot(FinanceByVendor[order(-Spend)][1:15], aes(Vendor,Spend)) +
+  geom_col() +
   coord_flip() +
-	labs(x="Vendor", y="Total Spend Per Vendor (£)", title="Total Spend for each Vendor (Linear Scale)")
+  scale_y_continuous(labels = scales::percent) +
+	labs(x="", y="Total Spend Per Vendor")
+
+#scale_y_continuous(labels = dollar_format(prefix = "£"))+
 
 ```
 
