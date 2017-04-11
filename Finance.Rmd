@@ -3,7 +3,7 @@ title: "Personal Finance"
 output: github_document
 ---
 
-Since 2011 I have been keeping meticulous records of everything I spend money on. Even for example the 6p Carrot I bought at 19:47 on the 2nd of August 2014 at Tesco (store id 2990)! There's a total of `r nrow(unique(Finance[,c("Date","Time")]))` recipts covering a duration of `r round(as.numeric((max(Finance$Date, na.rm=T) - min(Finance$Date, na.rm=T))/365),1)` years.
+Since 2011 I have been keeping meticulous records of everything I spend money on. I really mean everything, including for example the 6p I spend on a 75g carrot I bought at 7:47pm on the 2nd of August 2014 at Tesco (store id 2990)! There's a total of 1412 recipts covering a duration of 5 and a half years.
 
 ```{r load_librarys, echo=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
@@ -17,7 +17,7 @@ library(ggTimeSeries)
 #library(plotly)
 ```
 
-Integer values (£1,£2 etc.) are more common, as well as an increase in the frequency of £X.50 and £X.25 etc values.
+Looking at the distribution of item prices integer values (£1, £2 etc.) are more common, as well as 25p and 50p increments. I guess consumers prefer round numbers so companies size products accordingly (or just round up and take the difference as profit).
 
 ```{r}
 undergrad <- fread("Finance - Undergrad Expenses.tsv")
@@ -41,9 +41,9 @@ ggplot(Finance, aes(Price)) +
   labs(x="Price", y="Number of Items")
 ```
 
-Looking at the daily spend over time clearly shows the periods I was at university and the periods I was at home (with food etc. paid for by my parents) by the gaps where daily spending is £0.
+Looking at the daily spend over time clearly shows the periods I was at university and the periods I was at home (with food etc. paid for by my parents) by the gaps where daily spending is £0. You can also see the peak in expenditure at the start of each month due to rent payments.
 
-The vast majority of days I spent less than £10 (excluding accommodation). Note that on days when I spent nothing I did not record anything so these do not appear in the graph as a spike at £0.
+The vast majority of days I spent less than £10 (excluding accommodation), and again you can see spikes at integer and X.5 values. Note that on days when I spent nothing I did not record anything so these do not appear in the graph as a spike at £0.
 
 ```{r fig.width=6}
 # Aggregate: Price Per Day
@@ -71,7 +71,7 @@ ggplot(FinanceByTerm[Term!="Christmas"], aes(Term,Spend)) +
   labs(x="Term", y="Termly Spend") + facet_grid(~Year)
 ```
 
-Breaking down my spending by category, Rent accounts for the vast majority of my spending followed by Food.
+Breaking down my spending by category, Rent accounts for over 70% of my spending followed by Food at ~15%.
 
 ```{r}
 # Aggregate: Spend Per Categrory
@@ -105,7 +105,7 @@ ggplot(FinanceByVendor[order(-Spend)][1:15], aes(Vendor,Spend)) +
 
 ```
 
-My most commonly bought item is milk, bananas and bread. 
+My most commonly bought items are milk, bananas and bread. 
 
 ```{r}
 # Aggregate: Number of items
