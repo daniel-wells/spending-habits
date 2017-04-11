@@ -61,8 +61,12 @@ The vast majority of days I spent less than £10 (excluding accommodation). Note
 
 ```{r fig.width=6}
 # Aggregate: Price Per Day
-FinanceByDay <- ddply(Finance, c("Date","Term"), summarise, Sum=sum(Price,na.rm=TRUE))
-FinanceByDay <- Finance[,.(Spend = sum(Price), Term=unique(Term)), by = Date]
+FinanceByDay <- Finance[,.(Spend = sum(Price, na.rm=T), Term=unique(Term)), by = Date]
+
+ggplot_calendar_heatmap(FinanceByDay[!is.na(Date)], 'Date', 'Spend') +
+  theme(legend.position = "bottom", legend.key.width=unit(3,"cm")) +
+  scale_fill_distiller(palette = 'YlOrRd', direction = 1, trans = "log10", breaks=c(1,5,10,50,100,500)) +
+  facet_wrap(~Year, ncol = 2)
 
 # Manhatten Plot Price By Day
 ggplot(FinanceByDay, aes(Date,Spend, fill=Term)) +
