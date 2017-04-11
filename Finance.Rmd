@@ -96,6 +96,16 @@ ggplot(FinanceByTerm[Term!="Christmas"], aes(Term,Spend)) +
 Breaking down my spending by category, Rent accounts for the vast majority of my spending followed by Food.
 
 ```{r}
+# Aggregate: Spend Per Categrory
+FinanceByCategory <- Finance[,.(Spend = sum(Percentage, na.rm = T)), by = Category]
+FinanceByCategory[, Category := factor(Category, levels=FinanceByCategory[order(Spend)]$Category)]
+
+# Histogram Spend Per Vendor
+ggplot(FinanceByCategory, aes(Category, Spend)) +
+  geom_col() +
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent)+
+	labs(x="Category", y="Total Spend Per Category")
 
 ```
 
