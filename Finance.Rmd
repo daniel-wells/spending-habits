@@ -35,10 +35,13 @@ Finance[,Category:= as.factor(Category)]
 Finance[, Percentage := Price / sum(Price, na.rm = TRUE)]
 
 # Distribution of Item Prices
-ggplot(Finance, aes(Price)) + geom_histogram(binwidth=0.05) +
-  xlim(0,5) +
-  labs(x="Price (£)", y="# of Items", title="Distribution of Item Prices")
+ggplot(Finance, aes(Price)) +
+  geom_histogram(binwidth=0.02) +
+  scale_x_continuous(labels = dollar_format(prefix = "£"), limits=c(0,5)) +
+  labs(x="Price", y="Number of Items", title="Distribution of Item Prices")
+```
 
+```{r}
 
 # Plot Date vs Time
 # ggplot(Finance, aes(x = Date, y = Time, colour = factor(Term), size=Price, label=Item)) + geom_point(alpha=1/2) + scale_x_date() + labs(x="Date", y="Time", title="Items Bought by Date and Time", color="Term") + scale_size_area(max_size=50) + guides(color=guide_legend(nrow=2,byrow=TRUE),size=FALSE) + theme(legend.position="bottom") + scale_y_datetime(labels = date_format("%H:%M"))
