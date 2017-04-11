@@ -38,26 +38,7 @@ Finance[, Percentage := Price / sum(Price, na.rm = TRUE)]
 ggplot(Finance, aes(Price)) +
   geom_histogram(binwidth=0.02) +
   scale_x_continuous(labels = dollar_format(prefix = "£"), limits=c(0,5)) +
-  labs(x="Price", y="Number of Items", title="Distribution of Item Prices")
-```
-
-```{r}
-
-# Plot Date vs Time
-# ggplot(Finance, aes(x = Date, y = Time, colour = factor(Term), size=Price, label=Item)) + geom_point(alpha=1/2) + scale_x_date() + labs(x="Date", y="Time", title="Items Bought by Date and Time", color="Term") + scale_size_area(max_size=50) + guides(color=guide_legend(nrow=2,byrow=TRUE),size=FALSE) + theme(legend.position="bottom") + scale_y_datetime(labels = date_format("%H:%M"))
-# ggsave(file="item-time-all.png", width=12.75, height=7)
-
-# Subset Time data for 2nd Year
-FinanceSubset <- subset(Finance, (Term == "Year 2 Michaelmas" & !is.na(Time)) | (Term == "Year 2 Hilary" & !is.na(Time)) | (Term == "Year 2 Trinity" & !is.na(Time))| (Term == "Year 2 Summer" & !is.na(Time)))
-FinanceSubset <- subset(FinanceSubset, !is.na(Price))
-
-# Replaced by Plotly Graph
-# ggplot(FinanceSubset, aes(x = Date, y = Time, colour = factor(Category), size=Price, label=Item)) + geom_point(alpha=1/2) + scale_x_date() + labs(x="Date", y="Time", title="Items Bought by Date and Time In 2nd Year", color="Category") + scale_size_area(max_size=30) + guides(size=FALSE) + theme(legend.position="bottom")  + scale_y_datetime(labels = date_format("%H:%M")) + geom_text(data=subset(FinanceSubset, Price > 3),size=4,hjust=-0.15,vjust=0,angle=45,color="Black")
-
-#Plottly Graph
-# source("config.R") # Set Plottly username & API key
-# ggplot(FinanceSubset, aes(x = Date, y = Time, colour = factor(Category), label=Item)) + geom_point(aes(size=Price,text = paste("Item:",FinanceSubset$Item,"\n Price: £",FinanceSubset$Price)),alpha=1/2) + scale_x_date() + labs(x="Date", y="Time", title="Items Bought by Date and Time In Hilary Term of Year 2", color="Category") + scale_size_area(max_size=30) + guides(size=FALSE) + theme(legend.position="bottom")  + scale_y_datetime(labels = date_format("%H:%M"))
-#ggplotly()
+  labs(x="Price", y="Number of Items")
 ```
 
 Looking at the daily spend over time clearly shows the periods I was at university and the periods I was at home (with food etc. paid for by my parents) by the gaps where daily spending is £0.
@@ -73,14 +54,6 @@ ggplot_calendar_heatmap(FinanceByDay[!is.na(Date)], 'Date', 'Spend') +
   scale_fill_distiller(palette = 'YlOrRd', direction = 1, trans = "log10", breaks=c(1,5,10,50,100,500)) +
   facet_wrap(~Year, ncol = 2)
 
-# Manhatten Plot Price By Day
-ggplot(FinanceByDay, aes(Date,Spend, fill=Term)) +
-  geom_histogram(stat="identity") +
-  ylim(0,100) +
-  guides(fill=guide_legend(nrow=3,byrow=TRUE),size=FALSE) +
-  theme(legend.position="bottom") +
-  labs(x="Time", y="Daily Spend (£)", title="Daily Spend over Time", fill="Term") +
-  scale_fill_manual(values=c("#ED746C","#51B9E7","#C77BFA",rep(c("#ED746C","#51B9E7","#C77BFA","#59B82A"),3)))
 
 # Distribution of Spend per Day
 ggplot(FinanceByDay, aes(Spend)) +
