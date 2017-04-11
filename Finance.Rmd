@@ -130,3 +130,17 @@ ggplot(FinanceByVendor[order(-Spend)][1:15], aes(Vendor,Spend)) +
 ```
 
 My most commonly bought item is milk, bananas and bread. 
+
+```{r}
+# Aggregate: Number of items
+FinanceByItem <- Finance[,.(Spend = sum(Price, na.rm=T),.N), by = Item][order(-N)]
+FinanceByItem[,Item := factor(Item, levels=FinanceByItem[order(N)]$Item)]
+
+# Histogram Number of items
+ggplot(FinanceByItem[order(-N)][1:20], aes(Item,N)) +
+  geom_col() +
+  coord_flip() +
+	labs(x="", y="Total Number of Purchases")
+
+# to fix, banana(s), carrot(s), Potatoe(s), caps custard creams, Apple(s)
+```
