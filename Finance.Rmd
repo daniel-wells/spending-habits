@@ -84,7 +84,7 @@ ggplot(FinanceByDay, aes(Date,Spend, fill=Term)) +
 
 # Distribution of Spend per Day
 ggplot(FinanceByDay, aes(Spend)) +
-  geom_histogram(binwidth=0.25) +
+  geom_histogram(binwidth=0.1) +
   xlim(0,25) + labs(x="Daily Spend (£)", y="# of Days with a given spend", title="Distribution of Daily Spend")
 
 # Aggregate: Price Per Term
