@@ -2,6 +2,9 @@
 title: "Personal Finance"
 output: github_document
 ---
+
+Since 2011 I have been keeping meticulous records of everything I spend money on. Even for example the 6p Carrot I bought at 19:47 on the 2nd of August 2014 at Tesco (store id 2990)! There's a total of `r nrow(unique(Finance[,c("Date","Time")]))` recipts covering a duration of `r round(as.numeric((max(Finance$Date, na.rm=T) - min(Finance$Date, na.rm=T))/365),1)` years.
+
 ```{r load_librarys, echo=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
 opts_chunk$set(echo=FALSE, fig.width=10, fig.asp=1/1.5, fig.retina=2, message=FALSE, warning=FALSE)
@@ -12,11 +15,8 @@ library(dplyr)
 library(scales)
 #library(plotly)
 ```
-# TODO
-# Change Colors - for Time of Day
-# Add amount lables
-# Do Item Frequency Graph
-# Commas on lables, better background/axes lables etc.
+
+Integer values (£1,£2 etc.) are more common, as well as an increase in the frequency of £X.50 and £X.25 etc values.
 
 ```{r}
 undergrad <- fread("Finance - Undergrad Expenses.tsv")
@@ -52,7 +52,13 @@ FinanceSubset <- subset(FinanceSubset, !is.na(Price))
 # source("config.R") # Set Plottly username & API key
 # ggplot(FinanceSubset, aes(x = Date, y = Time, colour = factor(Category), label=Item)) + geom_point(aes(size=Price,text = paste("Item:",FinanceSubset$Item,"\n Price: £",FinanceSubset$Price)),alpha=1/2) + scale_x_date() + labs(x="Date", y="Time", title="Items Bought by Date and Time In Hilary Term of Year 2", color="Category") + scale_size_area(max_size=30) + guides(size=FALSE) + theme(legend.position="bottom")  + scale_y_datetime(labels = date_format("%H:%M"))
 #ggplotly()
+```
 
+Looking at the daily spend over time clearly shows the periods I was at university and the periods I was at home (with food etc. paid for by my parents) by the gaps where daily spending is £0.
+
+The vast majority of days I spent less than £10 (excluding accommodation). Note that on days when I spent nothing I did not record anything so these do not appear in the graph as a spike at £0.
+
+```{r fig.width=6}
 # Aggregate: Price Per Day
 FinanceByDay <- ddply(Finance, c("Date","Term"), summarise, Sum=sum(Price,na.rm=TRUE))
 FinanceByDay <- Finance[,.(Spend = sum(Price), Term=unique(Term)), by = Date]
@@ -79,7 +85,17 @@ ggplot(FinanceByTerm, aes(Term,Spend)) +
   geom_histogram(stat="identity") +
   theme(axis.text.x=element_text(angle=40,hjust=1,vjust=1,size=15)) +
   labs(x="Term", y="Termly Spend (£)", title="Total Spend for each Term")
+```
 
+Breaking down my spending by category, Rent accounts for the vast majority of my spending followed by Food.
+
+```{r}
+
+```
+
+Looking at total spend per vendor the top three vendors simply reflect my rental expenditure, followed by Tesco's and Sainsbury's where I do my grocery shopping.
+
+```{r}
 # Aggregate: Spend Per Vendor
 FinanceByVendor <- Finance[,.(Spend = sum(Price)), by = Vendor]
 FinanceByVendor[,Vendor := factor(Vendor, levels=FinanceByVendor[order(Spend)]$Vendor)]
@@ -92,3 +108,5 @@ ggplot(FinanceByVendor[1:10], aes(Vendor,Spend)) +
 	labs(x="Vendor", y="Total Spend Per Vendor (£)", title="Total Spend for each Vendor (Linear Scale)")
 
 ```
+
+My most commonly bought item is milk, bananas and bread. 
