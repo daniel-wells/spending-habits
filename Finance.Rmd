@@ -19,19 +19,22 @@ library(ggTimeSeries)
 
 Looking at the distribution of item prices integer values (£1, £2 etc.) are more common, as well as 25p and 50p increments. I guess consumers prefer round numbers so companies size products accordingly (or just round up and take the difference as profit).
 
-```{r}
+```{r item-prices, fig.width=10}
 undergrad <- fread("Finance - Undergrad Expenses.tsv")
 dphil <- fread("Finance - DPhil Expenses.tsv")
 
-Finance <- rbind(undergrad[,-c("Day","Notes"), with=FALSE], dphil[,-c("Totals:","V13"), with=FALSE])
-Finance <- Finance[Item!=""] # remove empty lines
+Finance <- rbind(undergrad[, -c("Day","Notes"), with=FALSE], dphil[, -c("Totals:","V13"), with=FALSE])
+Finance <- Finance[Item != ""] # remove empty lines
+
+#nrow(unique(Finance[,c("Date","Time")]))
+#round(as.numeric((max(Finance$Date, na.rm=T) - min(Finance$Date, na.rm=T))/365),1)
 
 # Reformat Date and Time
-Finance$Date <- dmy(Finance$Date)
-#Finance$Time <- hms(substr(Finance$Time,0,5))
-Finance$Time <- as.POSIXct(substr(Finance$Time,0,5),tz="GMT",format='%H:%M') #, origin="1970-01-01"
-Finance[,Term:= factor(Term, levels=c("Michaelmas","Christmas","Hilary","Trinity","Summer"))]
-Finance[,Category:= as.factor(Category)]
+Finance[, Date := dmy(Date)]
+Finance[, Year := as.factor(paste("Year",Year))]
+Finance[, Time := as.POSIXct(substr(Time, 0, 5), tz = "GMT", format = '%H:%M')]
+Finance[, Term := factor(Term, levels=c("Michaelmas","Christmas","Hilary","Trinity","Summer"))]
+Finance[, Category := as.factor(Category)]
 Finance[, Percentage := Price / sum(Price, na.rm = TRUE)]
 
 # Distribution of Item Prices
@@ -45,21 +48,47 @@ Looking at the daily spend over time clearly shows the periods I was at universi
 
 The vast majority of days I spent less than £10 (excluding accommodation), and again you can see spikes at integer and X.5 values. Note that on days when I spent nothing I did not record anything so these do not appear in the graph as a spike at £0.
 
-```{r fig.width=6}
+```{r by-day, fig.width=10}
 # Aggregate: Price Per Day
 FinanceByDay <- Finance[,.(Spend = sum(Price, na.rm=T), Term=unique(Term)), by = Date]
 
 ggplot_calendar_heatmap(FinanceByDay[!is.na(Date)], 'Date', 'Spend') +
   theme(legend.position = "bottom", legend.key.width=unit(3,"cm")) +
-  scale_fill_distiller(palette = 'YlOrRd', direction = 1, trans = "log10", breaks=c(1,5,10,50,100,500)) +
-  facet_wrap(~Year, ncol = 2)
-
+  scale_fill_distiller(palette = 'YlOrRd', direction = 1, trans = "log10", breaks=c(1,5,10,50,100,500), labels = dollar_format(prefix = "£")) +
+  facet_wrap(~Year, ncol = 1)
 
 # Distribution of Spend per Day
 ggplot(FinanceByDay, aes(Spend)) +
   geom_histogram(binwidth=0.1) +
-  xlim(0,25) + labs(x="Daily Spend (£)", y="# of Days with a given spend", title="Distribution of Daily Spend")
+  scale_x_continuous(labels = dollar_format(prefix = "£"), minor_breaks = 1:25, limits=c(0,25)) +
+  labs(x="Daily Spend (£)", y="# of Days with a given spend")
+```
 
+There are also time of day patterns for example during the summer terms when I did internships I didn't buy anything between 9am and 5pm on weekdays because I was working. Aggregating over all years it seems my favourite shopping times are 1pm and 7pm (lunch and dinner!).
+
+```{r by-time, fig.width=10}
+ggplot(Finance, aes(Date, Time, colour=Term, shape=weekdays(Date)%in%c("Saturday","Sunday"))) +
+  geom_point() +
+  scale_x_date(date_breaks = "1 year", date_minor_breaks="1 month", date_labels = "Start of %Y") +
+  scale_y_datetime(date_breaks = "2 hours", date_labels = "%H:%M", minor_breaks = NULL, limits=as.POSIXct(c("7",NA),format = "%H")) +
+  theme(legend.position = "bottom") + facet_wrap(~Year, scales = "free_x") +
+  scale_shape_manual(values=c(16,1)) +
+  scale_color_brewer(palette="Set1") +
+  labs(shape="Weekend?")
+
+#  geom_vline(xintercept=as.numeric(ymd("2016-10-25"))) +
+#  geom_vline(xintercept=as.numeric(ymd("2016-09-08"))) +
+#  geom_vline(xintercept=as.numeric(ymd("2016-09-10"))) +
+#  facet_zoom(x = Date > ymd("2016-06-01") & Date < ymd("2016-12-01"))
+
+time_histogram <- hist(Finance$Time, breaks=72, col="black", plot=F)
+ggplot(data.table(Time=as_datetime(time_histogram$mids), Density=time_histogram$density), aes(Time, Density)) + geom_point() + geom_smooth(span=0.25) + scale_x_datetime(date_breaks = "2 hours", date_labels = "%H:%M", minor_breaks = NULL)
+
+```
+
+The total spend per term is remarkably constant during my undergraduate years apart from summer of year 3 when my accommodation was heavily discounted. From year 5 onwards the terms are longer which explains the general increase and in the first term of year 6 I went on a trip to Vancouver which probably explains some of that peak.
+
+```{r by-term, fig.width=10}
 # Aggregate: Price Per Term
 FinanceByTerm <- Finance[,.(Spend = sum(Price, na.rm = T)), by = c('Term','Year')]
 
@@ -73,7 +102,7 @@ ggplot(FinanceByTerm[Term!="Christmas"], aes(Term,Spend)) +
 
 Breaking down my spending by category, Rent accounts for over 70% of my spending followed by Food at ~15%.
 
-```{r}
+```{r by-category, fig.width=10}
 # Aggregate: Spend Per Categrory
 FinanceByCategory <- Finance[,.(Spend = sum(Percentage, na.rm = T)), by = Category]
 FinanceByCategory[, Category := factor(Category, levels=FinanceByCategory[order(Spend)]$Category)]
@@ -89,7 +118,7 @@ ggplot(FinanceByCategory, aes(Category, Spend)) +
 
 Looking at total spend per vendor the top three vendors simply reflect my rental expenditure, followed by Tesco's and Sainsbury's where I do my grocery shopping.
 
-```{r}
+```{r by-vendor, fig.width=10}
 # Aggregate: Spend Per Vendor
 FinanceByVendor <- Finance[,.(Spend = sum(Percentage, na.rm = TRUE)), by = Vendor]
 FinanceByVendor[,Vendor := factor(Vendor, levels=FinanceByVendor[order(Spend)]$Vendor)]
@@ -107,7 +136,7 @@ ggplot(FinanceByVendor[order(-Spend)][1:15], aes(Vendor,Spend)) +
 
 My most commonly bought items are milk, bananas and bread. 
 
-```{r}
+```{r by-item, fig.width=10}
 # Aggregate: Number of items
 FinanceByItem <- Finance[,.(Spend = sum(Price, na.rm=T),.N), by = Item][order(-N)]
 FinanceByItem[,Item := factor(Item, levels=FinanceByItem[order(N)]$Item)]
