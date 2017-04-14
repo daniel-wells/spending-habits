@@ -30,12 +30,12 @@ Finance <- Finance[Item != ""] # remove empty lines
 #round(as.numeric((max(Finance$Date, na.rm=T) - min(Finance$Date, na.rm=T))/365),1)
 
 # Reformat Date and Time
-Finance[, Date := dmy(Date)]
-Finance[, Year := as.factor(paste("Year",Year))]
-Finance[, Time := as.POSIXct(substr(Time, 0, 5), tz = "GMT", format = '%H:%M')]
-Finance[, Term := factor(Term, levels=c("Michaelmas","Christmas","Hilary","Trinity","Summer"))]
-Finance[, Category := as.factor(Category)]
-Finance[, Percentage := Price / sum(Price, na.rm = TRUE)]
+invisible(Finance[, Date := dmy(Date)])
+invisible(Finance[, Year := as.factor(paste("Year",Year))])
+invisible(Finance[, Time := as.POSIXct(substr(Time, 0, 5), tz = "GMT", format = '%H:%M')])
+invisible(Finance[, Term := factor(Term, levels=c("Michaelmas","Christmas","Hilary","Trinity","Summer"))])
+invisible(Finance[, Category := as.factor(Category)])
+invisible(Finance[, Percentage := Price / sum(Price, na.rm = TRUE)])
 
 # Distribution of Item Prices
 ggplot(Finance, aes(Price)) +
@@ -48,7 +48,7 @@ Looking at the daily spend over time clearly shows the periods I was at universi
 
 The vast majority of days I spent less than £10 (excluding accommodation), and again you can see spikes at integer and X.5 values. Note that on days when I spent nothing I did not record anything so these do not appear in the graph as a spike at £0.
 
-```{r by-day, fig.width=10}
+```{r by-day, fig.width=15}
 # Aggregate: Price Per Day
 FinanceByDay <- Finance[,.(Spend = sum(Price, na.rm=T), Term=unique(Term)), by = Date]
 
@@ -105,7 +105,7 @@ Breaking down my spending by category, Rent accounts for over 70% of my spending
 ```{r by-category, fig.width=10}
 # Aggregate: Spend Per Categrory
 FinanceByCategory <- Finance[,.(Spend = sum(Percentage, na.rm = T)), by = Category]
-FinanceByCategory[, Category := factor(Category, levels=FinanceByCategory[order(Spend)]$Category)]
+invisible(FinanceByCategory[, Category := factor(Category, levels=FinanceByCategory[order(Spend)]$Category)])
 
 # Histogram Spend Per Vendor
 ggplot(FinanceByCategory, aes(Category, Spend)) +
@@ -121,7 +121,7 @@ Looking at total spend per vendor the top three vendors simply reflect my rental
 ```{r by-vendor, fig.width=10}
 # Aggregate: Spend Per Vendor
 FinanceByVendor <- Finance[,.(Spend = sum(Percentage, na.rm = TRUE)), by = Vendor]
-FinanceByVendor[,Vendor := factor(Vendor, levels=FinanceByVendor[order(Spend)]$Vendor)]
+invisible(FinanceByVendor[,Vendor := factor(Vendor, levels=FinanceByVendor[order(Spend)]$Vendor)])
 
 # Histogram Spend Per Vendor
 ggplot(FinanceByVendor[order(-Spend)][1:15], aes(Vendor,Spend)) +
@@ -139,7 +139,7 @@ My most commonly bought items are milk, bananas and bread.
 ```{r by-item, fig.width=10}
 # Aggregate: Number of items
 FinanceByItem <- Finance[,.(Spend = sum(Price, na.rm=T),.N), by = Item][order(-N)]
-FinanceByItem[,Item := factor(Item, levels=FinanceByItem[order(N)]$Item)]
+invisible(FinanceByItem[,Item := factor(Item, levels=FinanceByItem[order(N)]$Item)])
 
 # Histogram Number of items
 ggplot(FinanceByItem[order(-N)][1:20], aes(Item,N)) +
