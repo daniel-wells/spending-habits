@@ -46,9 +46,7 @@ ggplot(Finance, aes(Price)) +
 
 Looking at the daily spend over time clearly shows the periods I was at university and the periods I was at home (with food etc. paid for by my parents) by the gaps where daily spending is £0. You can also see the peak in expenditure at the start of each month due to rent payments.
 
-The vast majority of days I spent less than £10 (excluding accommodation), and again you can see spikes at integer and X.5 values. Note that on days when I spent nothing I did not record anything so these do not appear in the graph as a spike at £0.
-
-```{r by-day, fig.width=15}
+```{r by-day, fig.width=10, fig.asp=1.2}
 # Aggregate: Price Per Day
 FinanceByDay <- Finance[,.(Spend = sum(Price, na.rm=T), Term=unique(Term)), by = Date]
 
@@ -56,12 +54,6 @@ ggplot_calendar_heatmap(FinanceByDay[!is.na(Date)], 'Date', 'Spend') +
   theme(legend.position = "bottom", legend.key.width=unit(3,"cm")) +
   scale_fill_distiller(palette = 'YlOrRd', direction = 1, trans = "log10", breaks=c(1,5,10,50,100,500), labels = dollar_format(prefix = "£")) +
   facet_wrap(~Year, ncol = 1)
-
-# Distribution of Spend per Day
-ggplot(FinanceByDay, aes(Spend)) +
-  geom_histogram(binwidth=0.1) +
-  scale_x_continuous(labels = dollar_format(prefix = "£"), minor_breaks = 1:25, limits=c(0,25)) +
-  labs(x="Daily Spend (£)", y="# of Days with a given spend")
 ```
 
 There are also time of day patterns for example during the summer terms when I did internships I didn't buy anything between 9am and 5pm on weekdays because I was working. Aggregating over all years it seems my favourite shopping times are 1pm and 7pm (lunch and dinner!).
