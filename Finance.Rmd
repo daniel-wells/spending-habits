@@ -13,17 +13,26 @@ library(ggplot2)
 library(lubridate)
 library(dplyr)
 library(scales)
-library(ggTimeSeries) 
+library(ggTimeSeries) #devtools::install_github('Ather-Energy/ggTimeSeries')
+library(googlesheets)
+library(zoo) # for rollapply
 #library(plotly)
 ```
 
 Looking at the distribution of item prices integer values (£1, £2 etc.) are more common, as well as 25p and 50p increments. I guess consumers prefer round numbers so companies size products accordingly (or just round up and take the difference as profit).
 
 ```{r item-prices, fig.width=10}
-undergrad <- fread("Finance - Undergrad Expenses.tsv")
-dphil <- fread("Finance - DPhil Expenses.tsv")
+# undergrad <- fread("Finance - Undergrad Expenses.tsv")
+# dphil <- fread("Finance - DPhil Expenses.tsv")
+# Finance <- rbind(undergrad[, -c("Day","Notes"), with=FALSE], dphil[, -c("Totals:","V13"), with=FALSE])
 
-Finance <- rbind(undergrad[, -c("Day","Notes"), with=FALSE], dphil[, -c("Totals:","V13"), with=FALSE])
+data_gs <- gs_title("Finance")
+data <- gs_read(data_gs, ws = "Undergrad Expenses")
+undergrad <- as.data.table(data)
+data <- gs_read(data_gs, ws = "DPhil Expenses")
+dphil <- as.data.table(data)
+
+Finance <- rbind(undergrad[, -c("Day","Notes"), with=FALSE], dphil[, -c("Totals:","X13"), with=FALSE])
 Finance <- Finance[Item != ""] # remove empty lines
 
 #nrow(unique(Finance[,c("Date","Time")]))
@@ -36,6 +45,7 @@ invisible(Finance[, Time := as.POSIXct(substr(Time, 0, 5), tz = "GMT", format = 
 invisible(Finance[, Term := factor(Term, levels=c("Michaelmas","Christmas","Hilary","Trinity","Summer"))])
 invisible(Finance[, Category := as.factor(Category)])
 invisible(Finance[, Percentage := Price / sum(Price, na.rm = TRUE)])
+setorder(Finance, Date, Time)
 
 # Distribution of Item Prices
 ggplot(Finance, aes(Price)) +
@@ -73,16 +83,18 @@ ggplot(Finance, aes(Date, Time, colour=Term, shape=weekdays(Date)%in%c("Saturday
 #  geom_vline(xintercept=as.numeric(ymd("2016-09-10"))) +
 #  facet_zoom(x = Date > ymd("2016-06-01") & Date < ymd("2016-12-01"))
 
-time_histogram <- hist(Finance$Time, breaks=72, col="black", plot=F)
-ggplot(data.table(Time=as_datetime(time_histogram$mids), Density=time_histogram$density), aes(Time, Density)) + geom_point() + geom_smooth(span=0.25) + scale_x_datetime(date_breaks = "2 hours", date_labels = "%H:%M", minor_breaks = NULL)
+time_histogram <- hist(Finance[!is.na(Time)]$Time, breaks=72, plot=F)
+ggplot(data.table(Time=as_datetime(time_histogram$breaks), Density=time_histogram$density), aes(Time, Density)) +
+  geom_point() +
+  geom_smooth(span=0.25) +
+  scale_x_datetime(date_breaks = "2 hours", date_labels = "%H:%M", minor_breaks = NULL)
 
 ```
 
-The total spend per term is remarkably constant during my undergraduate years apart from summer of year 3 when my accommodation was heavily discounted. From year 5 onwards the terms are longer which explains the general increase and in the first term of year 6 I went on a trip to Vancouver which probably explains some of that peak.
-
+The total spend per term is remarkably constant during my undergraduate years apart from summer of year 3 when my accommodation was heavily discounted. 
 ```{r by-term, fig.width=10}
 # Aggregate: Price Per Term
-FinanceByTerm <- Finance[,.(Spend = sum(Price, na.rm = T)), by = c('Term','Year')]
+FinanceByTerm <- Finance[Date<as_date("2015-09-01")][,.(Spend = sum(Price, na.rm = T)), by = c('Term','Year')]
 
 # Histogram - Spend Per Term
 ggplot(FinanceByTerm[Term!="Christmas"], aes(Term,Spend)) +
@@ -90,6 +102,27 @@ ggplot(FinanceByTerm[Term!="Christmas"], aes(Term,Spend)) +
   theme(axis.text.x=element_text(angle=40,hjust=1,vjust=1,size=15)) +
   scale_y_continuous(labels = dollar_format(prefix = "£"))+
   labs(x="Term", y="Termly Spend") + facet_grid(~Year)
+```
+
+Now I've graduated I can keep track of my spending continuosly rather than termly. Although there are fluctuations, (for example in October 2016 I went to Vancouver), my spending is nicely centered slightly below my target.
+
+```{r rolling_mean, fig.asp=0.5}
+#FinanceByDay$Day <- as.numeric(FinanceByDay$Date - min(FinanceByDay$Date, na.rm = T))
+setkey(FinanceByDay, Date)
+FinanceByDayPadded <- FinanceByDay[J(seq(min(Date, na.rm = T), max(Date, na.rm = T),by=1))]
+FinanceByDayPadded[is.na(Spend),Spend:=0]
+FinanceByDayRolling <- FinanceByDayPadded[Date>as.Date("2015-10-1")][,.(Date, Daily_Spend=rollapply(Spend, 30, mean, align="right", fill=NA))]
+
+ggplot(FinanceByDayRolling[!is.na(Daily_Spend)], aes(Date, Daily_Spend)) +
+  geom_point(size=0.75) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%b %y") + 
+  scale_y_continuous(labels = dollar_format(prefix = "£"), limits=c(20,50)) +
+  labs(x="Date", y="Daily Spend (30 day average)") +
+  geom_hline(aes(colour="Target Maximum (£10K/year equiv.)", yintercept=10000/365), show.legend=TRUE) +
+  geom_hline(aes(colour="Overall Mean", yintercept=mean(FinanceByDayPadded[Date>as.Date("2015-10-1")]$Spend, na.rm=T)), show.legend=TRUE) +
+  scale_color_manual(values=c("blue","red"), name="") +
+  theme(legend.position = "bottom")
+
 ```
 
 Breaking down my spending by category, Rent accounts for over 70% of my spending followed by Food at ~15%.
@@ -112,7 +145,7 @@ Looking at total spend per vendor the top three vendors simply reflect my rental
 
 ```{r by-vendor, fig.width=10}
 # Aggregate: Spend Per Vendor
-FinanceByVendor <- Finance[,.(Spend = sum(Percentage, na.rm = TRUE)), by = Vendor]
+FinanceByVendor <- Finance[!is.na(Vendor)][,.(Spend = sum(Percentage, na.rm = TRUE)), by = Vendor]
 invisible(FinanceByVendor[,Vendor := factor(Vendor, levels=FinanceByVendor[order(Spend)]$Vendor)])
 
 # Histogram Spend Per Vendor
@@ -140,4 +173,6 @@ ggplot(FinanceByItem[order(-N)][1:20], aes(Item,N)) +
 	labs(x="", y="Total Number of Purchases")
 
 # to fix, banana(s), carrot(s), Potatoe(s), caps custard creams, Apple(s)
+# use fuzzy matching to find item names to correct
+#sapply(as.character(FinanceByItem$Item)[1:20], function(candidate_string) as.character(FinanceByItem$Item[agrepl(candidate_string, as.character(FinanceByItem$Item), max.distance = 0.2)]))
 ```

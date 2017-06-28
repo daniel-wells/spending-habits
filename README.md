@@ -15,9 +15,11 @@ There are also time of day patterns for example during the summer terms when I d
 
 <img src="Finance_files/figure-markdown_github/by-time-1.png" width="960" /><img src="Finance_files/figure-markdown_github/by-time-2.png" width="960" />
 
-The total spend per term is remarkably constant during my undergraduate years apart from summer of year 3 when my accommodation was heavily discounted. From year 5 onwards the terms are longer which explains the general increase and in the first term of year 6 I went on a trip to Vancouver which probably explains some of that peak.
+The total spend per term is remarkably constant during my undergraduate years apart from summer of year 3 when my accommodation was heavily discounted. <img src="Finance_files/figure-markdown_github/by-term-1.png" width="960" />
 
-<img src="Finance_files/figure-markdown_github/by-term-1.png" width="960" />
+Now I've graduated I can keep track of my spending continuosly rather than termly. Although there are fluctuations, (for example in October 2016 I went to Vancouver), my spending is nicely centered slightly below my target.
+
+<img src="Finance_files/figure-markdown_github/rolling_mean-1.png" width="960" />
 
 Breaking down my spending by category, Rent accounts for over 70% of my spending followed by Food at ~15%.
 
