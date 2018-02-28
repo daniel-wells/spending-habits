@@ -3,7 +3,7 @@ title: "Spending Habits"
 output: github_document
 ---
 
-Since 2011 I have been keeping meticulous records of everything I spend money on. I really mean everything, including, for example, the 6 pence I spent on a 75g carrot which I bought at 7:47pm on the 2nd of August 2014 at Tesco Cowley Road Metro! There's a total of 1419 recipts for 3713 items covering a duration of 5 and a half years. The code to repoduce this analysis can be founnd in the [.Rmd](Finance.Rmd) file.
+Since 2011 I have been keeping meticulous records of everything I spend money on. I really mean everything, including, for example, the 6 pence I spent on a 75g carrot which I bought at 7:47pm on the 2nd of August 2014 at Tesco Cowley Road Metro! There's a total of 1773 recipts for 4613 items covering a duration of 5 and a half years. The code to repoduce this analysis can be founnd in the [.Rmd](Finance.Rmd) file.
 
 ```{r load_librarys, echo=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
@@ -51,7 +51,8 @@ setorder(Finance, Date, Time)
 ggplot(Finance, aes(Price)) +
   geom_histogram(binwidth=0.02) +
   scale_x_continuous(labels = dollar_format(prefix = "£"), limits=c(0,5)) +
-  labs(x="Price", y="Number of Items")
+  labs(x="Price", y="Number of Items") +
+  theme_minimal()
 ```
 
 Looking at the daily spend over time clearly shows the periods I was at university and the periods I was at home (with food etc. paid for by my parents) by the gaps where daily spending is £0. You can also see the peak in expenditure at the start of each month due to rent payments.
@@ -73,10 +74,12 @@ ggplot(Finance, aes(Date, Time, colour=Term, shape=weekdays(Date)%in%c("Saturday
   geom_point() +
   scale_x_date(date_breaks = "1 year", date_minor_breaks="1 month", date_labels = "Start of %Y") +
   scale_y_datetime(date_breaks = "2 hours", date_labels = "%H:%M", minor_breaks = NULL, limits=as.POSIXct(c("7",NA),format = "%H")) +
-  theme(legend.position = "bottom") + facet_wrap(~Year, scales = "free_x") +
+  facet_wrap(~Year, scales = "free_x") +
   scale_shape_manual(values=c(16,1)) +
   scale_color_brewer(palette="Set1") +
-  labs(shape="Weekend?")
+  labs(shape="Weekend?") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
 
 #  geom_vline(xintercept=as.numeric(ymd("2016-10-25"))) +
 #  geom_vline(xintercept=as.numeric(ymd("2016-09-08"))) +
@@ -87,7 +90,8 @@ time_histogram <- hist(Finance[!is.na(Time)]$Time, breaks=72, plot=F)
 ggplot(data.table(Time=as_datetime(time_histogram$breaks), Density=time_histogram$density), aes(Time, Density)) +
   geom_point() +
   geom_smooth(span=0.25) +
-  scale_x_datetime(date_breaks = "2 hours", date_labels = "%H:%M", minor_breaks = NULL)
+  scale_x_datetime(date_breaks = "2 hours", date_labels = "%H:%M", minor_breaks = NULL) +
+  theme_minimal()
 
 ```
 
@@ -100,8 +104,9 @@ FinanceByTerm <- Finance[Date<as_date("2015-09-01")][,.(Spend = sum(Price, na.rm
 ggplot(FinanceByTerm[Term!="Christmas"], aes(Term,Spend)) +
   geom_col() +
   theme(axis.text.x=element_text(angle=40,hjust=1,vjust=1,size=15)) +
-  scale_y_continuous(labels = dollar_format(prefix = "£"))+
-  labs(x="Term", y="Termly Spend") + facet_grid(~Year)
+  scale_y_continuous(labels = dollar_format(prefix = "£")) +
+  labs(x="Term", y="Termly Spend") + facet_grid(~Year) +
+  theme_minimal()
 ```
 
 Now I've graduated I can keep track of my spending continuosly rather than termly. Although there are fluctuations, (for example in October 2016 I went to Vancouver), my spending is nicely centered slightly below my target.
@@ -121,11 +126,12 @@ ggplot(FinanceByDayRolling[!is.na(Daily_Spend)], aes(Date, Daily_Spend)) +
   geom_hline(aes(colour="Target Maximum (£10K/year equiv.)", yintercept=10000/365), show.legend=TRUE) +
   geom_hline(aes(colour="Overall Mean", yintercept=mean(FinanceByDayPadded[Date>as.Date("2015-10-1")]$Spend, na.rm=T)), show.legend=TRUE) +
   scale_color_manual(values=c("blue","red"), name="") +
-  theme(legend.position = "bottom")
+  theme_minimal() +
+  theme(legend.position = "bottom", axis.text.x = element_text(angle = 40, hjust = 1))
 
 ```
 
-Breaking down my spending by category, Rent accounts for over 70% of my spending followed by Food at ~15%.
+Breaking down my spending by category, Rent accounts for 72% of my spending followed by Food at 14%.
 
 ```{r by-category, fig.width=10}
 # Aggregate: Spend Per Categrory
@@ -137,7 +143,8 @@ ggplot(FinanceByCategory, aes(Category, Spend)) +
   geom_col() +
   coord_flip() +
   scale_y_continuous(labels = scales::percent)+
-	labs(x="Category", y="Total Spend Per Category")
+	labs(x="Category", y="Total Spend Per Category") +
+  theme_minimal()
 
 ```
 
@@ -153,7 +160,8 @@ ggplot(FinanceByVendor[order(-Spend)][1:15], aes(Vendor,Spend)) +
   geom_col() +
   coord_flip() +
   scale_y_continuous(labels = scales::percent) +
-	labs(x="", y="Total Spend Per Vendor")
+	labs(x="", y="Total Spend Per Vendor") +
+  theme_minimal()
 
 #scale_y_continuous(labels = dollar_format(prefix = "£"))+
 
@@ -170,9 +178,13 @@ invisible(FinanceByItem[,Item := factor(Item, levels=FinanceByItem[order(N)]$Ite
 ggplot(FinanceByItem[order(-N)][1:20], aes(Item,N)) +
   geom_col() +
   coord_flip() +
-	labs(x="", y="Total Number of Purchases")
+	labs(x="", y="Total Number of Purchases") +
+  theme_minimal()
 
 # to fix, banana(s), carrot(s), Potatoe(s), caps custard creams, Apple(s)
 # use fuzzy matching to find item names to correct
 #sapply(as.character(FinanceByItem$Item)[1:20], function(candidate_string) as.character(FinanceByItem$Item[agrepl(candidate_string, as.character(FinanceByItem$Item), max.distance = 0.2)]))
+
+# to do: change in habits (items, locations) over time
+
 ```

@@ -1,7 +1,7 @@
 Spending Habits
 ================
 
-Since 2011 I have been keeping meticulous records of everything I spend money on. I really mean everything, including, for example, the 6 pence I spent on a 75g carrot which I bought at 7:47pm on the 2nd of August 2014 at Tesco Cowley Road Metro! There's a total of 1419 recipts for 3713 items covering a duration of 5 and a half years. The code to repoduce this analysis can be founnd in the [.Rmd](Finance.Rmd) file.
+Since 2011 I have been keeping meticulous records of everything I spend money on. I really mean everything, including, for example, the 6 pence I spent on a 75g carrot which I bought at 7:47pm on the 2nd of August 2014 at Tesco Cowley Road Metro! There's a total of 1773 recipts for 4613 items covering a duration of 5 and a half years. The code to repoduce this analysis can be founnd in the [.Rmd](Finance.Rmd) file.
 
 Looking at the distribution of item prices integer values (£1, £2 etc.) are more common, as well as 25p and 50p increments. I guess consumers prefer round numbers so companies size products accordingly (or just round up and take the difference as profit).
 
@@ -21,7 +21,7 @@ Now I've graduated I can keep track of my spending continuosly rather than terml
 
 <img src="Finance_files/figure-markdown_github/rolling_mean-1.png" width="960" />
 
-Breaking down my spending by category, Rent accounts for over 70% of my spending followed by Food at ~15%.
+Breaking down my spending by category, Rent accounts for 72% of my spending followed by Food at 14%.
 
 <img src="Finance_files/figure-markdown_github/by-category-1.png" width="960" />
 
