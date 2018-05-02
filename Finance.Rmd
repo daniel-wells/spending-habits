@@ -188,3 +188,16 @@ ggplot(FinanceByItem[order(-N)][1:20], aes(Item,N)) +
 # to do: change in habits (items, locations) over time
 
 ```
+
+As I also recorded the weights I can calculate, for example, the average weight of a banana. Although I select large bananas to maximise banana to peel ratio so this is a biased sample.
+
+```{r bananas, fig.width=10, warning=FALSE}
+bananas <- Finance[Item=="Bananas"][,.(Weight=as.numeric(gsub("g","",Size)),Quantity, Date)][!is.na(Weight)][!is.na(Quantity)][Weight!=0]
+
+bananas <- bananas[!is.na(Weight)][!is.na(Quantity)][Weight!=0]
+bananas[,Weight := Weight/Quantity]
+
+qplot(rep(bananas$Weight, times=bananas$Quantity), geom="density") +
+  xlab("Banana Weight (grams)") + theme_minimal()
+```
+
