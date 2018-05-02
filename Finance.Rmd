@@ -3,7 +3,7 @@ title: "Spending Habits"
 output: github_document
 ---
 
-Since 2011 I have been keeping meticulous records of everything I spend money on. I really mean everything, including, for example, the 6 pence I spent on a 75g carrot which I bought at 7:47pm on the 2nd of August 2014 at Tesco Cowley Road Metro! There's a total of 1773 recipts for 4613 items covering a duration of 5 and a half years. The code to repoduce this analysis can be founnd in the [.Rmd](Finance.Rmd) file.
+Since 2011 I have been keeping meticulous records of everything I spend money on. I really mean everything, including, for example, the 6 pence I spent on a 75g carrot which I bought at 7:47pm on the 2nd of August 2014 at Tesco Cowley Road Metro! There's a total of 1850 recipts for 4803 items covering a duration of 6 and a half years. The code to repoduce this analysis can be founnd in the [.Rmd](Finance.Rmd) file.
 
 ```{r load_librarys, echo=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
@@ -15,17 +15,16 @@ library(dplyr)
 library(scales)
 library(ggTimeSeries) #devtools::install_github('Ather-Energy/ggTimeSeries')
 library(googlesheets)
+library(ggrepel)
+library(ggforce)
+library(RColorBrewer)
 library(zoo) # for rollapply
 #library(plotly)
 ```
 
 Looking at the distribution of item prices integer values (£1, £2 etc.) are more common, as well as 25p and 50p increments. I guess consumers prefer round numbers so companies size products accordingly (or just round up and take the difference as profit).
 
-```{r item-prices, fig.width=10}
-# undergrad <- fread("Finance - Undergrad Expenses.tsv")
-# dphil <- fread("Finance - DPhil Expenses.tsv")
-# Finance <- rbind(undergrad[, -c("Day","Notes"), with=FALSE], dphil[, -c("Totals:","V13"), with=FALSE])
-
+```{r download, echo=FALSE}
 data_gs <- gs_title("Finance")
 data <- gs_read(data_gs, ws = "Undergrad Expenses")
 undergrad <- as.data.table(data)
@@ -33,20 +32,22 @@ data <- gs_read(data_gs, ws = "DPhil Expenses")
 dphil <- as.data.table(data)
 
 Finance <- rbind(undergrad[, -c("Day","Notes"), with=FALSE], dphil[, -c("Totals:","X13"), with=FALSE])
-Finance <- Finance[Item != ""] # remove empty lines
+Finance <- Finance[!is.na(Item)] # remove empty lines
 
 #nrow(unique(Finance[,c("Date","Time")]))
 #round(as.numeric((max(Finance$Date, na.rm=T) - min(Finance$Date, na.rm=T))/365),1)
 
 # Reformat Date and Time
-invisible(Finance[, Date := dmy(Date)])
-invisible(Finance[, Year := as.factor(paste("Year",Year))])
-invisible(Finance[, Time := as.POSIXct(substr(Time, 0, 5), tz = "GMT", format = '%H:%M')])
-invisible(Finance[, Term := factor(Term, levels=c("Michaelmas","Christmas","Hilary","Trinity","Summer"))])
-invisible(Finance[, Category := as.factor(Category)])
-invisible(Finance[, Percentage := Price / sum(Price, na.rm = TRUE)])
+Finance[, Date := dmy(Date)]
+Finance[, Year := as.factor(paste("Year",Year))]
+Finance[, Time := as.POSIXct(substr(Time, 0, 5), tz = "GMT", format = '%H:%M')]
+Finance[, Term := factor(Term, levels=c("Michaelmas","Christmas","Hilary","Trinity","Summer"))]
+Finance[, Category := as.factor(Category)]
+Finance[, Percentage := Price / sum(Price, na.rm = TRUE)]
 setorder(Finance, Date, Time)
+```
 
+```{r item-prices, fig.width=10}
 # Distribution of Item Prices
 ggplot(Finance, aes(Price)) +
   geom_histogram(binwidth=0.02) +
@@ -70,16 +71,16 @@ ggplot_calendar_heatmap(FinanceByDay[!is.na(Date)], 'Date', 'Spend') +
 There are also time of day patterns for example during the summer terms when I did internships I didn't buy anything between 9am and 5pm on weekdays because I was working. Aggregating over all years it seems my favourite shopping times are 1pm and 7pm (lunch and dinner!).
 
 ```{r by-time, fig.width=10}
-ggplot(Finance, aes(Date, Time, colour=Term, shape=weekdays(Date)%in%c("Saturday","Sunday"))) +
-  geom_point() +
-  scale_x_date(date_breaks = "1 year", date_minor_breaks="1 month", date_labels = "Start of %Y") +
-  scale_y_datetime(date_breaks = "2 hours", date_labels = "%H:%M", minor_breaks = NULL, limits=as.POSIXct(c("7",NA),format = "%H")) +
-  facet_wrap(~Year, scales = "free_x") +
-  scale_shape_manual(values=c(16,1)) +
-  scale_color_brewer(palette="Set1") +
-  labs(shape="Weekend?") +
-  theme_minimal() +
-  theme(legend.position = "bottom")
+# ggplot(Finance, aes(Date, Time, colour=Term, shape=weekdays(Date)%in%c("Saturday","Sunday"))) +
+#   geom_point() +
+#   scale_x_date(date_breaks = "1 year", date_minor_breaks="1 month", date_labels = "Start of %Y") +
+#   scale_y_datetime(date_breaks = "2 hours", date_labels = "%H:%M", minor_breaks = NULL, limits=as.POSIXct(c("7",NA),format = "%H")) +
+#   facet_wrap(~Year, scales = "free_x") +
+#   scale_shape_manual(values=c(16,1)) +
+#   scale_color_brewer(palette="Set1") +
+#   labs(shape="Weekend?") +
+#   theme_minimal() +
+#   theme(legend.position = "bottom")
 
 #  geom_vline(xintercept=as.numeric(ymd("2016-10-25"))) +
 #  geom_vline(xintercept=as.numeric(ymd("2016-09-08"))) +
@@ -95,21 +96,7 @@ ggplot(data.table(Time=as_datetime(time_histogram$breaks), Density=time_histogra
 
 ```
 
-The total spend per term is remarkably constant during my undergraduate years apart from summer of year 3 when my accommodation was heavily discounted. 
-```{r by-term, fig.width=10}
-# Aggregate: Price Per Term
-FinanceByTerm <- Finance[Date<as_date("2015-09-01")][,.(Spend = sum(Price, na.rm = T)), by = c('Term','Year')]
-
-# Histogram - Spend Per Term
-ggplot(FinanceByTerm[Term!="Christmas"], aes(Term,Spend)) +
-  geom_col() +
-  theme(axis.text.x=element_text(angle=40,hjust=1,vjust=1,size=15)) +
-  scale_y_continuous(labels = dollar_format(prefix = "£")) +
-  labs(x="Term", y="Termly Spend") + facet_grid(~Year) +
-  theme_minimal()
-```
-
-Now I've graduated I can keep track of my spending continuosly rather than termly. Although there are fluctuations, (for example in October 2016 I went to Vancouver), my spending is nicely centered slightly below my target.
+My daily spending is nicely centered slightly below my target of 10k/year. The spike in spending in October 2016 is when I went to Vancouver.
 
 ```{r rolling_mean, fig.asp=0.5}
 #FinanceByDay$Day <- as.numeric(FinanceByDay$Date - min(FinanceByDay$Date, na.rm = T))
@@ -131,55 +118,90 @@ ggplot(FinanceByDayRolling[!is.na(Daily_Spend)], aes(Date, Daily_Spend)) +
 
 ```
 
-Breaking down my spending by category, Rent accounts for 72% of my spending followed by Food at 14%.
+Breaking down my spending by category, Rent and bills account for 80% of my spending followed by Food at just over 10%.
 
 ```{r by-category, fig.width=10}
 # Aggregate: Spend Per Categrory
-FinanceByCategory <- Finance[,.(Spend = sum(Percentage, na.rm = T)), by = Category]
-invisible(FinanceByCategory[, Category := factor(Category, levels=FinanceByCategory[order(Spend)]$Category)])
+# FinanceByCategory <- Finance[,.(Spend = sum(Price, na.rm = T)),by=c("Category","Year")]
 
-# Histogram Spend Per Vendor
-ggplot(FinanceByCategory, aes(Category, Spend)) +
-  geom_col() +
-  coord_flip() +
+setkey(Finance, Year, Category)
+FinanceByCategory <- Finance[CJ(unique(Year), unique(Category)), .(Spend = sum(Price, na.rm = T)), by = .EACHI] # need 0 counts
+
+FinanceByCategory <- FinanceByCategory[,.(Percentage = Spend/sum(Spend, na.rm = T), Category),by=Year]
+
+FinanceByCategory <- FinanceByCategory[!Category %in% c("Gymnastics","Laundry")]
+
+colour_scheme <- brewer.pal(9,"Paired")
+names(colour_scheme) <- as.character(unique(FinanceByCategory$Category))
+
+ggplot(FinanceByCategory, aes(Year, Percentage, colour=Category, group=Category)) +
+  geom_line() +
   scale_y_continuous(labels = scales::percent)+
-	labs(x="Category", y="Total Spend Per Category") +
-  theme_minimal()
+	labs(x="Year", y="Total Spend Per Category") +
+  theme_minimal() +
+  geom_label_repel(data = FinanceByCategory[Year == "Year 7" & Percentage>0.1],
+                   aes(label = Category),
+                   segment.color = "black",
+                   nudge_x = 1,
+                   na.rm = TRUE) +
+  scale_color_manual(values=colour_scheme, guide = FALSE)
 
-```
-
-Looking at total spend per vendor the top three vendors simply reflect my rental expenditure, followed by Tesco's and Sainsbury's where I do my grocery shopping.
-
-```{r by-vendor, fig.width=10}
-# Aggregate: Spend Per Vendor
-FinanceByVendor <- Finance[!is.na(Vendor)][,.(Spend = sum(Percentage, na.rm = TRUE)), by = Vendor]
-invisible(FinanceByVendor[,Vendor := factor(Vendor, levels=FinanceByVendor[order(Spend)]$Vendor)])
-
-# Histogram Spend Per Vendor
-ggplot(FinanceByVendor[order(-Spend)][1:15], aes(Vendor,Spend)) +
-  geom_col() +
-  coord_flip() +
-  scale_y_continuous(labels = scales::percent) +
-	labs(x="", y="Total Spend Per Vendor") +
-  theme_minimal()
-
-#scale_y_continuous(labels = dollar_format(prefix = "£"))+
-
+ggplot(FinanceByCategory[Percentage<0.1], aes(Year, Percentage, colour=Category, group=Category)) +
+  geom_line() +
+  scale_y_continuous(labels = scales::percent, limits = c(0,0.09))+
+	labs(x="Year", y="Total Spend Per Category") +
+  theme_minimal() +
+  geom_label_repel(data = FinanceByCategory[Year == "Year 7" & Percentage<0.1],
+                   aes(label = Category),
+                   segment.color = "black",
+                   nudge_x = 1,
+                   na.rm = TRUE) +
+  scale_color_manual(values=colour_scheme, guide = FALSE)
+#scale_color_brewer(palette = "Paired",guide = FALSE) 
 ```
 
 My most commonly bought items are milk, bananas and bread. 
 
 ```{r by-item, fig.width=10}
 # Aggregate: Number of items
-FinanceByItem <- Finance[,.(Spend = sum(Price, na.rm=T),.N), by = Item][order(-N)]
-invisible(FinanceByItem[,Item := factor(Item, levels=FinanceByItem[order(N)]$Item)])
+FinanceByItem <- Finance[,.(Count = .N), by = Item][order(-Count)]
+FinanceByItem[,Item := factor(Item, levels=FinanceByItem[order(Count)]$Item)]
 
-# Histogram Number of items
-ggplot(FinanceByItem[order(-N)][1:20], aes(Item,N)) +
+ggplot(FinanceByItem[order(-Count)][1:10], aes(Item,Count)) +
   geom_col() +
   coord_flip() +
 	labs(x="", y="Total Number of Purchases") +
   theme_minimal()
+```
+
+It's fun to see how my purchasing habits have changed over time.
+
+```{r by-item-by-time, fig.width=10}
+# Histogram Number of items
+setkey(Finance, Item, Year)
+FinanceByItem <- Finance[CJ(unique(Item), unique(Year)), .(Count = .N), by = .EACHI] # need 0 counts
+
+# numerous_items <- FinanceByItem[,sum(Count),by=Item][order(-V1)][1:20]$Item
+
+FinanceByItem[Item %in% c("Cottage Pie","Spaghetti Bolognase","Chicken Korma","Lloyd Grossman Bolognase Sauce"), Category := "Dinner"]
+FinanceByItem[Item %in% c("Bread Rolls","Kingsmill Wholemeal Rolls","Wholemeal Baps"), Category := "Bread"]
+FinanceByItem[Item %in% c("Milk Chocolate","Chocolate Cookies","Madeira Cake","Petits Filous"), Category := "Snacks"]
+FinanceByItem[Item %in% c("Muffins","Blueberry Muffins","Chocolate Muffins"), Category := "Muffins"]
+FinanceByItem[Item %in% c("Mild Cheddar Cheese","Medium Cheddar Cheese"), Category := "Cheese"]
+FinanceByItem[Item %in% c("Whole Wheat Pasta","Pasta"), Category := "Pasta"]
+
+#FinanceByItem[,Item := factor(Item, levels=unique(FinanceByItem[order(Count)]$Item))]
+#[Item %in% numerous_items]
+
+FinanceByItem <- FinanceByItem[!is.na(Category)]
+FinanceByItem[,Item := factor(Item, levels=unique(FinanceByItem[order(Category)]$Item))]
+
+ggplot(FinanceByItem[!is.na(Category)], aes(Year, Count, colour=Category, group=Item)) +
+  geom_line() +
+	labs(x="", y="Total Number of Purchases") +
+  theme_minimal()  + facet_wrap(~Item, scales = "free_y") + 
+  scale_color_manual(values = RColorBrewer::brewer.pal(9, "Set1")[c(1:5,9)]) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # to fix, banana(s), carrot(s), Potatoe(s), caps custard creams, Apple(s)
 # use fuzzy matching to find item names to correct
